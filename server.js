@@ -4,9 +4,10 @@ const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const csrf = require("csurf");
 const cors = require("cors");
-const authRoutes = require("./routes/authRoutes");
+const { swaggerUi, swaggerSpec } = require("./swagger");
 
 dotenv.config();
+
 const app = express();
 
 const corsOptions = {
@@ -18,6 +19,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
+// DB connection
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -29,7 +31,16 @@ mongoose
     process.exit(1);
   });
 
-app.use("/api/auth", authRoutes);
+// Routes
+const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const appointmentRoutes = require("./routes/appointmentRoutes");
 
+app.use("/auth", authRoutes);
+app.use("/admin", adminRoutes);
+app.use("/appointments", appointmentRoutes);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

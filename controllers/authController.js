@@ -1,36 +1,39 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-// Generate access token (short-lived)
 const generateAccessToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.ACCESS_TOKEN_SECRET, {
     expiresIn: process.env.ACCESS_TOKEN_EXPIRE,
   });
 };
 
-// Generate refresh token (long-lived)
 const generateRefreshToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.REFRESH_TOKEN_SECRET, {
     expiresIn: process.env.REFRESH_TOKEN_EXPIRE,
   });
 };
 
-// Register new user
 exports.register = async (req, res) => {
   const { email, password } = req.body;
   try {
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: "User already exists" });
 
-    await User.create({ email, password });
+    const user = await User.create({
+      email,
+      password,
+      role: "user", // دايمًا يكون user لما يسجل من الموقع
+    });
 
-    res.status(201).json({ message: "Account created successfully" });
+    res.status(201).json({
+      message: "Account created successfully",
+      user: { id: user._id, email: user.email, role: user.role },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Login user and return tokens
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -44,9 +47,9 @@ exports.login = async (req, res) => {
     res
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: false, // set to true if using HTTPS
+        secure: false,
         sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       })
       .status(200)
       .json({
@@ -59,12 +62,10 @@ exports.login = async (req, res) => {
   }
 };
 
-// Logout user
 exports.logout = (req, res) => {
   res.clearCookie("refreshToken").json({ message: "Logged out successfully" });
 };
 
-// Generate new access token from refresh token
 exports.refreshToken = (req, res) => {
   const token = req.cookies.refreshToken;
   if (!token)
