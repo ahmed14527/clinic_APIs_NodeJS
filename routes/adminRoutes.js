@@ -16,6 +16,7 @@ const validate = require("../middleware/validateResult");
 router.post("/slots", protect, isAdmin, createSlot);
 
 router.get("/urgent-requests", protect, isAdmin, getUrgentRequests);
+router.post("/create-user", protect, isAdmin, createUserByAdmin);
 
 router.patch(
   "/urgent-requests/:id",
